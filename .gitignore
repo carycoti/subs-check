@@ -2,6 +2,7 @@ openipdb.ipdb
 config.yaml
 mihomo.yaml
 test
+GEMINI.md
 
 output/*
 subs-check*
