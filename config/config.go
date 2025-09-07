@@ -13,6 +13,7 @@ type Config struct {
 	TotalSpeedLimit      int      `yaml:"total-speed-limit"`
 	MinSpeed             int      `yaml:"min-speed"`
 	Timeout              int      `yaml:"timeout"`
+	TestOnlyTls          bool     `yaml:"test-only-tls"`
 	FilterRegex          string   `yaml:"filter-regex"`
 	SaveMethod           string   `yaml:"save-method"`
 	WebDAVURL            string   `yaml:"webdav-url"`

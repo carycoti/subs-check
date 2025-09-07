@@ -108,6 +108,17 @@ func Check() ([]Result, error) {
 	proxies = proxyutils.DeduplicateProxies(proxies)
 	slog.Info(fmt.Sprintf("去重后节点数量: %d", len(proxies)))
 
+	if config.GlobalConfig.TestOnlyTls {
+		var tlsProxies []map[string]any
+		for _, proxy := range proxies {
+			if tls, ok := proxy["tls"].(bool); ok && tls {
+				tlsProxies = append(tlsProxies, proxy)
+			}
+		}
+		proxies = tlsProxies
+		slog.Info(fmt.Sprintf("只测试TLS节点，筛选后节点数量: %d", len(proxies)))
+	}
+
 	checker := NewProxyChecker(len(proxies))
 	return checker.run(proxies)
 }
