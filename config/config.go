@@ -40,6 +40,8 @@ type Config struct {
 	MihomoApiSecret      string   `yaml:"mihomo-api-secret"`
 	ListenPort           string   `yaml:"listen-port"`
 	RenameNode           bool     `yaml:"rename-node"`
+	AllowedCountries     []string `yaml:"allowed-countries"`
+	BlockedCountries     []string `yaml:"blocked-countries"`
 	KeepSuccessProxies   bool     `yaml:"keep-success-proxies"`
 	OutputDir            string   `yaml:"output-dir"`
 	AppriseApiServer     string   `yaml:"apprise-api-server"`

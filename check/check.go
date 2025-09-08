@@ -210,6 +210,35 @@ func (pc *ProxyChecker) checkProxy(proxy map[string]any) *Result {
 	}
 	defer httpClient.Close()
 
+	if len(config.GlobalConfig.AllowedCountries) > 0 || len(config.GlobalConfig.BlockedCountries) > 0 {
+		country, _ := proxyutils.GetProxyCountry(httpClient.Client)
+		if country != "" {
+			country = strings.ToUpper(country)
+			// Blocked countries check
+			for _, blockedCountry := range config.GlobalConfig.BlockedCountries {
+				if strings.ToUpper(blockedCountry) == country {
+					slog.Debug(fmt.Sprintf("节点 %s 地区 %s 在黑名单中，跳过", proxy["name"], country))
+					return nil
+				}
+			}
+
+			// Allowed countries check
+			if len(config.GlobalConfig.AllowedCountries) > 0 {
+				isAllowed := false
+				for _, allowedCountry := range config.GlobalConfig.AllowedCountries {
+					if strings.ToUpper(allowedCountry) == country {
+						isAllowed = true
+						break
+					}
+				}
+				if !isAllowed {
+					slog.Debug(fmt.Sprintf("节点 %s 地区 %s 不在白名单中，跳过", proxy["name"], country))
+					return nil
+				}
+			}
+		}
+	}
+
 	cloudflare, err := platform.CheckCloudflare(httpClient.Client)
 	if err != nil || !cloudflare {
 		return nil
