@@ -48,6 +48,14 @@ rename-node: true
 # 节点前缀，依赖rename-node为true才生效
 node-prefix: ""
 
+# 国家/地区白名单，为空则不启用
+allowed-countries:
+  # - HK
+  # - TW
+# 国家/地区黑名单
+blocked-countries:
+  # - CN
+
 # 只测试指定协议的节点
 node-type:
   # - ss

@@ -113,6 +113,10 @@ func Check() ([]Result, error) {
 		for _, proxy := range proxies {
 			if tls, ok := proxy["tls"].(bool); ok && tls {
 				tlsProxies = append(tlsProxies, proxy)
+			} else {
+				if name, ok := proxy["name"].(string); ok {
+					slog.Info(fmt.Sprintf("节点 %s 非TLS节点，跳过", name))
+				}
 			}
 		}
 		proxies = tlsProxies
@@ -205,18 +209,51 @@ func (pc *ProxyChecker) checkProxy(proxy map[string]any) *Result {
 
 	httpClient := CreateClient(proxy)
 	if httpClient == nil {
-		slog.Debug(fmt.Sprintf("创建代理Client失败: %v", proxy["name"]))
+		slog.Info(fmt.Sprintf("创建代理Client失败: %v", proxy["name"]))
 		return nil
 	}
 	defer httpClient.Close()
 
 	cloudflare, err := platform.CheckCloudflare(httpClient.Client)
 	if err != nil || !cloudflare {
+		slog.Info(fmt.Sprintf("节点 %s cloudflare检测失败: %v", proxy["name"], err))
 		return nil
+	}
+
+	if len(config.GlobalConfig.AllowedCountries) > 0 || len(config.GlobalConfig.BlockedCountries) > 0 {
+		country, _ := proxyutils.GetProxyCountry(httpClient.Client)
+		if country == "" {
+			slog.Info(fmt.Sprintf("节点 %s 获取地区失败，跳过", proxy["name"]))
+			return nil
+		}
+		country = strings.ToUpper(country)
+		// Blocked countries check
+		for _, blockedCountry := range config.GlobalConfig.BlockedCountries {
+			if strings.ToUpper(blockedCountry) == country {
+				slog.Info(fmt.Sprintf("节点 %s 地区 %s 在黑名单中，跳过", proxy["name"], country))
+				return nil
+			}
+		}
+
+		// Allowed countries check
+		if len(config.GlobalConfig.AllowedCountries) > 0 {
+			isAllowed := false
+			for _, allowedCountry := range config.GlobalConfig.AllowedCountries {
+				if strings.ToUpper(allowedCountry) == country {
+					isAllowed = true
+					break
+				}
+			}
+			if !isAllowed {
+				slog.Info(fmt.Sprintf("节点 %s 地区 %s 不在白名单中，跳过", proxy["name"], country))
+				return nil
+			}
+		}
 	}
 
 	google, err := platform.CheckGoogle(httpClient.Client)
 	if err != nil || !google {
+		slog.Info(fmt.Sprintf("节点 %s google检测失败: %v", proxy["name"], err))
 		return nil
 	}
 
@@ -224,6 +261,7 @@ func (pc *ProxyChecker) checkProxy(proxy map[string]any) *Result {
 	if config.GlobalConfig.SpeedTestUrl != "" {
 		speed, _, err = platform.CheckSpeed(httpClient.Client, Bucket)
 		if err != nil || speed < config.GlobalConfig.MinSpeed {
+			slog.Info(fmt.Sprintf("节点 %s 速度检测失败: %v", proxy["name"], err))
 			return nil
 		}
 	}
@@ -487,7 +525,7 @@ type ProxyClient struct {
 func CreateClient(mapping map[string]any) *ProxyClient {
 	proxy, err := adapter.ParseProxy(mapping)
 	if err != nil {
-		slog.Debug(fmt.Sprintf("底层mihomo创建代理Client失败: %v", err))
+		slog.Info(fmt.Sprintf("底层mihomo创建代理Client失败: %v", err))
 		return nil
 	}
 

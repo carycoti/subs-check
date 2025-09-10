@@ -3,6 +3,7 @@ config.yaml
 mihomo.yaml
 test
 GEMINI.md
+CLAUDE.md
 
 output/*
 subs-check*
